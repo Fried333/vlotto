@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse
+ 
 import json
 import os
 import getpass
@@ -475,12 +475,8 @@ def get_my_tickets(rpc: RpcClient, address: Optional[str] = None) -> List[str]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="vLotto Ticket Buyer (TUI)")
-    parser.add_argument("--address", help="Address to use (pays vlotto, receives ticket identities)")
-    parser.add_argument("--buffer", type=float, default=0.01, help="Buffer percent as decimal (default 0.01 = 1%%)")
-    parser.add_argument("--dry-run", action="store_true", help="Do not broadcast takeoffer; use returntx=true")
-    parser.add_argument("--max-rounds", type=int, default=10, help="Max offer refresh rounds while buying")
-    args = parser.parse_args()
+    buffer_percent = 0.01
+    dry_run = False
 
     # Load from config file (checks Linux, macOS, Windows paths)
     rpcuser, rpcpass, url = load_rpc_credentials_from_conf()
@@ -578,7 +574,7 @@ def main() -> None:
     
     addresses = get_addresses_with_vrsc(rpc, min_balance=0.001)
     
-    address = args.address or os.environ.get("VERUS_ADDRESS")
+    address = os.environ.get("VERUS_ADDRESS")
     
     if not address:
         if not addresses:
@@ -636,7 +632,7 @@ def main() -> None:
     vlotto_balance = get_currency_balance(rpc, address, "vlotto")
     deficit = max(0.0, needed - vlotto_balance)
 
-    buf = args.buffer
+    buf = buffer_percent
     if buf < 0:
         buf = 0.0
 
@@ -725,7 +721,7 @@ def main() -> None:
         attempted.add(offer_txid)
 
         try:
-            r = take_ticket_offer(rpc, address, change_address, found_offer, returntx=args.dry_run)
+            r = take_ticket_offer(rpc, address, change_address, found_offer, returntx=dry_run)
             result = r.get("result")
             
             # Extract txid
@@ -740,7 +736,7 @@ def main() -> None:
             print(f"  ✓ {bought}/{qty}: {r['ticket']}")
             
             # Wait for this tx to confirm before next purchase (UTXO availability)
-            if tx_id and bought < qty and not args.dry_run:
+            if tx_id and bought < qty and not dry_run:
                 wait_for_tx_confirmed(rpc, tx_id, min_confirmations=1)
             elif tx_id:
                 last_txid = tx_id
@@ -762,7 +758,7 @@ def main() -> None:
                 print(f"  ✗ Failed: {err_msg[:50]}")
 
     # Wait for last transaction to confirm if not already done
-    if last_txid and not args.dry_run:
+    if last_txid and not dry_run:
         print(f"\n  Waiting for final confirmation...")
         wait_for_tx_confirmed(rpc, last_txid, min_confirmations=1)
 
