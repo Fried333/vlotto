@@ -14,7 +14,7 @@ pip install requests
 3. Run:
 
 ```bash
-python vlotto_tui.py
+python3 vlotto_tui.py
 ```
 
 RPC credentials are read from your local Verus config (`VRSC.conf`). If they are not found, the script prompts for them.
