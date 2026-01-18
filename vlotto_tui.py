@@ -564,8 +564,49 @@ def main() -> None:
         if my_draw_tickets:
             print(f"    {', '.join(sorted(my_draw_tickets))}")
     else:
-        print("  No offers found in marketplace.")
-        raise SystemExit("No tickets available to purchase.")
+        draw_block = ledger_info.get("drawing_block")
+        total_tickets = ledger_info.get("total_tickets")
+        jackpot = ledger_info.get("jackpot")
+        required_matches = ledger_info.get("required_matches")
+        current_phase = ledger_info.get("current_phase")
+        available_tickets = 0
+
+        if draw_block and current_height:
+            blocks_until = draw_block - current_height
+            est_minutes = blocks_until  # ~1 block per minute
+            est_hours = est_minutes / 60
+            if est_hours >= 1:
+                time_str = f"~{est_hours:.1f} hours"
+            else:
+                time_str = f"~{est_minutes} minutes"
+        else:
+            blocks_until = None
+            time_str = "unknown"
+
+        print(f"  Draw Block:        {draw_block or 'unknown'}")
+        if blocks_until is not None:
+            print(f"  Blocks Until Draw: {blocks_until} ({time_str})")
+        if jackpot is not None:
+            print(f"  Jackpot:           {jackpot} vlotto")
+        if required_matches is not None:
+            print(f"  Matches to Win:    {required_matches}")
+        if total_tickets:
+            print(f"  Total Tickets:     {total_tickets}")
+        print(f"  Available Offers:  {available_tickets} of {total_tickets or '?'}")
+        print(f"  Ticket Price:      1.0 vlotto each")
+        if current_phase:
+            phase_display = current_phase.replace("_", " ").replace("phase", "Phase ")
+            print(f"  Current Phase:     {phase_display}")
+
+        my_tickets = get_my_tickets(rpc)
+        draw_prefix = str(draw_block) + "_" if draw_block else ""
+        my_draw_tickets = [t for t in my_tickets if t.startswith(draw_prefix)]
+        print(f"\n  Your Tickets:      {len(my_draw_tickets)} for this draw (all wallet addresses)")
+        if my_draw_tickets:
+            print(f"    {', '.join(sorted(my_draw_tickets))}")
+
+        print("\nNo tickets available to purchase.")
+        raise SystemExit(0)
 
     # Get addresses with VRSC balance
     print("\n" + "-" * 60)
